@@ -1,0 +1,11 @@
+# Arduino/PlatformIO build artifacts
+build/
+.pio/
+*.o
+*.elf
+*.bin
+
+# Real credentials - never commit these, copy from secrets.h.example instead
+firmware/plant_watering_system/secrets.h
+
+.DS_Store
