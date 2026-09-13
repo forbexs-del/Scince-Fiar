@@ -59,7 +59,9 @@ V4, a switch for V5).
 - WiFi + Blynk connection
 - Sensor read + averaging/debouncing
 - Threshold-crossing decision logic
-- Non-blocking dosing (full 240 mL event, won't restart mid-dose)
+- Incremental pulsed dosing: 40 mL pulses with a soak/re-check between each,
+  stopping once target moisture is reached or a 6-pulse (240 mL) ceiling
+  hits - no single big dump that could overflow the soil
 - Minimum time-between-waterings safeguard
 - Manual override + auto-watering enable/disable via Blynk
 - Serial CSV logging stub
@@ -80,3 +82,7 @@ V4, a switch for V5).
   logging only). If you decide not to add a second sensor, just stop reading
   `PIN_SENSOR_CONTROL` in `pollSensorsAndMaybeWater()` - nothing else changes.
 - **Soaker line inlet connection**: documentation-only, doesn't affect firmware.
+- **Pulse size / target moisture / soak time**: `PULSE_ML` (40), `MOISTURE_TARGET_PCT`
+  (55%), and `SOAK_SETTLE_MS` (3 min) in `config.h` are starting points, not
+  measured values - tune them once you see how fast the soil actually
+  absorbs a pulse and how the sensor reading responds.

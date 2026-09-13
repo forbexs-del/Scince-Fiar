@@ -42,8 +42,10 @@ logic can be trusted. Do both before soil goes in the containers.
 
 ## 3. After both are done
 
-- Set `MOISTURE_THRESHOLD_PCT` if the default (35%) doesn't match what you
-  want to test - this is a design choice, not something you measure.
+- Set `MOISTURE_THRESHOLD_PCT` (start watering) and `MOISTURE_TARGET_PCT`
+  (stop watering) if the defaults (35% / 55%) don't match what you want to
+  test - these are design choices, not something you measure. Keep
+  `MOISTURE_TARGET_PCT` comfortably above `MOISTURE_THRESHOLD_PCT`.
 - Double-check `RELAY_ACTIVE_LOW` in `config.h`: if the pump runs when it
   shouldn't (or vice versa) the first time you flip `setPump()`, this is
   the constant to flip.
@@ -51,5 +53,9 @@ logic can be trusted. Do both before soil goes in the containers.
   board layout and your breadboard wiring - `PIN_SENSOR_EXPERIMENTAL` (32),
   `PIN_SENSOR_CONTROL` (33), and `PIN_PUMP_RELAY` (25) were chosen as safe
   ADC1/digital pins but weren't checked against physical hardware yet.
-- Run a real end-to-end test: dry soil in the experimental container should
-  trigger a full 240 mL watering event through the relay and pump.
+- Watch a real pulse cycle end to end: dry soil in the experimental
+  container should trigger a 40 mL pulse, pause for `SOAK_SETTLE_MS`, re-check
+  moisture, and either pulse again or stop. Watch the Serial log for a few
+  full cycles and confirm the moisture % is actually climbing pulse over
+  pulse - if it isn't, `SOAK_SETTLE_MS` is probably too short for the
+  reading to reflect the water that just went in.

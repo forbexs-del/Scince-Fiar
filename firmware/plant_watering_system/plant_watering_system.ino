@@ -7,6 +7,11 @@
   Control container: sensor (if wired) is logging-only and must never reach
   the pump-trigger logic - watering for that container stays manual, by hand.
 
+  Watering is delivered as small pulses (PULSE_ML each), not one big dump:
+  pulse, pause to let it soak in, re-check moisture, repeat until the target
+  moisture level is reached or a pulse-count ceiling is hit. This avoids
+  overflowing/pooling the soil from dropping the whole dose at once.
+
   Two calibration constants in config.h are placeholders until Monday's
   Day-0 calibration (see ../../CALIBRATION.md). Everything else here can be
   written, compiled, and logic-tested with no hardware attached (see
@@ -25,7 +30,12 @@ BlynkTimer timer;
 // ---- State ----
 bool autoWateringEnabled = true;
 bool pumpIsOn = false;
-unsigned long pumpOffAtMs = 0;
+
+enum WateringState { WATERING_IDLE, WATERING_PULSING, WATERING_SOAKING };
+WateringState wateringState = WATERING_IDLE;
+int pulsesThisEvent = 0;
+unsigned long wateringStateDeadlineMs = 0; // when the current pulse/soak step ends
+
 // Wraps around on purpose so the very first watering isn't blocked by the
 // min-time-between-waterings guard (millis()-lastWateringEndMs is huge at boot).
 unsigned long lastWateringEndMs = (unsigned long)0 - MIN_MS_BETWEEN_WATERINGS;
@@ -75,31 +85,68 @@ void setPump(bool on) {
   Blynk.virtualWrite(V_PUMP_STATE, on ? 1 : 0);
 }
 
-// Starts one full watering event: runs the pump for the time needed to
-// deliver ML_PER_WATERING_EVENT at the calibrated PUMP_ML_PER_SEC rate.
-// Non-blocking (no delay()) so Blynk.run() keeps servicing while it runs;
-// checkPumpOffTimer() in loop() turns the pump off when the duration elapses.
-// Per brief 4.2: once started, the full dose runs even if the moisture
-// threshold gets re-crossed mid-dose - no partial/interrupted triggers.
-void startWateringEvent() {
-  if (pumpIsOn) return; // already mid-dose, ignore
-
-  unsigned long durationMs = (unsigned long)((ML_PER_WATERING_EVENT / PUMP_ML_PER_SEC) * 1000.0f);
+// Starts one pulse: runs the pump for the time needed to deliver PULSE_ML at
+// the calibrated PUMP_ML_PER_SEC rate. Non-blocking (no delay()) so
+// Blynk.run() keeps servicing while it runs; updateWateringStateMachine() in
+// loop() advances to the soak step when the pulse duration elapses.
+void startPulse() {
+  unsigned long durationMs = (unsigned long)((PULSE_ML / PUMP_ML_PER_SEC) * 1000.0f);
   setPump(true);
-  pumpOffAtMs = millis() + durationMs;
+  wateringStateDeadlineMs = millis() + durationMs;
+  wateringState = WATERING_PULSING;
 
-  Serial.print("Watering event started, planned duration ms: ");
+  Serial.print("Pulse ");
+  Serial.print(pulsesThisEvent + 1);
+  Serial.print("/");
+  Serial.print(MAX_PULSES_PER_EVENT);
+  Serial.print(" started, duration ms: ");
   Serial.println(durationMs);
 }
 
-void checkPumpOffTimer() {
-  if (pumpIsOn && millis() >= pumpOffAtMs) {
+// Starts a full watering event: repeated pulse/soak/check cycles until
+// MOISTURE_TARGET_PCT is reached or MAX_PULSES_PER_EVENT caps it.
+void startWateringEvent() {
+  if (wateringState != WATERING_IDLE) return; // event already in progress, ignore
+
+  pulsesThisEvent = 0;
+  startPulse();
+}
+
+// Drives the pulse -> soak -> re-check -> (pulse again or stop) cycle. Must
+// be called every loop() iteration, not just on a timer interval, since pulse
+// and soak durations aren't aligned to SENSOR_POLL_INTERVAL_MS.
+void updateWateringStateMachine() {
+  if (wateringState == WATERING_PULSING && millis() >= wateringStateDeadlineMs) {
     setPump(false);
-    lastWateringEndMs = millis();
-    totalWaterDeliveredMl += ML_PER_WATERING_EVENT;
+    totalWaterDeliveredMl += PULSE_ML;
+    pulsesThisEvent++;
     Blynk.virtualWrite(V_TOTAL_WATER_ML, totalWaterDeliveredMl);
-    Serial.print("Watering event finished. Total water delivered (mL): ");
+    Serial.print("Pulse finished. Total water delivered (mL): ");
     Serial.println(totalWaterDeliveredMl);
+
+    wateringState = WATERING_SOAKING;
+    wateringStateDeadlineMs = millis() + SOAK_SETTLE_MS;
+
+  } else if (wateringState == WATERING_SOAKING && millis() >= wateringStateDeadlineMs) {
+    int raw = averagedRawRead(PIN_SENSOR_EXPERIMENTAL);
+    float pct = rawToPercent(raw);
+    Blynk.virtualWrite(V_MOISTURE_EXPERIMENTAL, pct);
+
+    Serial.print("Post-pulse moisture check: ");
+    Serial.print(pct);
+    Serial.println("%");
+
+    if (pct >= MOISTURE_TARGET_PCT) {
+      Serial.println("Target moisture reached, watering event done.");
+      wateringState = WATERING_IDLE;
+      lastWateringEndMs = millis();
+    } else if (pulsesThisEvent >= MAX_PULSES_PER_EVENT) {
+      Serial.println("Max pulses reached for this event, stopping short of target (will retry after min-time guard).");
+      wateringState = WATERING_IDLE;
+      lastWateringEndMs = millis();
+    } else {
+      startPulse();
+    }
   }
 }
 
@@ -127,7 +174,9 @@ void pollSensorsAndMaybeWater() {
 
   // Control container's sensor is logging only - it never appears in this
   // decision. Do not add it here.
-  if (autoWateringEnabled && !pumpIsOn && minTimeBetweenWateringsElapsed()) {
+  // Gate on wateringState (not pumpIsOn): the pump is off during the soak
+  // step too, but the event is still in progress and must not be restarted.
+  if (autoWateringEnabled && wateringState == WATERING_IDLE && minTimeBetweenWateringsElapsed()) {
     if (pctExperimental < MOISTURE_THRESHOLD_PCT) {
       startWateringEvent();
     }
@@ -147,8 +196,14 @@ void logData() {
   Serial.print(millis());
   Serial.print(",totalWaterMl=");
   Serial.print(totalWaterDeliveredMl);
-  Serial.print(",pump=");
-  Serial.println(pumpIsOn ? "ON" : "OFF");
+  Serial.print(",state=");
+  switch (wateringState) {
+    case WATERING_IDLE:    Serial.print("IDLE");    break;
+    case WATERING_PULSING: Serial.print("PULSING"); break;
+    case WATERING_SOAKING: Serial.print("SOAKING"); break;
+  }
+  Serial.print(",pulsesThisEvent=");
+  Serial.println(pulsesThisEvent);
 }
 
 // ---------------------------------------------------------------------------
@@ -157,6 +212,8 @@ void logData() {
 
 // Manual override button (V4): forces one watering event immediately,
 // bypassing the threshold check and the min-time-between-waterings guard.
+// Still runs as pulses up to MOISTURE_TARGET_PCT/MAX_PULSES_PER_EVENT, same
+// as an auto-triggered event - it just skips the "should we start?" check.
 // Intended for calibration/troubleshooting, not normal trial operation.
 BLYNK_WRITE(V_MANUAL_OVERRIDE) {
   int pressed = param.asInt();
@@ -222,5 +279,5 @@ void setup() {
 void loop() {
   Blynk.run();
   timer.run();
-  checkPumpOffTimer(); // must run every loop iteration, not just on a timer interval
+  updateWateringStateMachine(); // must run every loop iteration, not just on a timer interval
 }
