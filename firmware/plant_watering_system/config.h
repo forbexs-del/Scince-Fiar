@@ -9,13 +9,17 @@
 // was an open item in the brief - not physically confirmed yet).
 #define PIN_SENSOR_EXPERIMENTAL   32   // capacitive sensor, experimental container - drives the pump
 #define PIN_SENSOR_CONTROL        33   // capacitive sensor, control container - LOGGING ONLY, never wired into pump logic
-#define PIN_PUMP_RELAY            25   // digital out -> relay module IN pin -> switches 12V to the DFR0523 pump
+#define PIN_PUMP_SIGNAL           25   // servo-style PPM signal wire from the pump's 3-pin Gravity connector
 
-// Most cheap single-channel relay boards are "active LOW" (a LOW signal
-// energizes the relay). Flip this to false if the pump runs backwards, or if
-// a MOSFET driver board is used instead of a relay (those are typically
-// active HIGH). This was an open decision in the brief - confirm Monday.
-#define RELAY_ACTIVE_LOW true
+// The DFR0523 "Digital Peristaltic Pump" has its own onboard driver - it's
+// controlled by a hobby-servo-style signal, not a simple on/off switch, so no
+// relay or MOSFET is needed. 1500us is the pump's documented "stop" position
+// (same convention as a standard servo's center). PUMP_RUN_US picks a
+// direction/speed to dispense water - if the pump runs backward (or doesn't
+// run) at this value, try the mirrored value on the other side of 1500 (e.g.
+// 1900 <-> 1100) rather than assuming something is broken.
+#define PUMP_STOP_US   1500
+#define PUMP_RUN_US    1900
 
 // ---------------------------------------------------------------------------
 // Calibration placeholders - UNKNOWN until Monday's Day-0 calibration.

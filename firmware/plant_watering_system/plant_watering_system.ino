@@ -1,7 +1,13 @@
 /*
   Smart Automated Plant Watering System - Firmware
   ESP32 FireBeetle + DFRobot capacitive soil moisture sensor (SEN0308) +
-  DFRobot peristaltic pump (DFR0523) via relay, monitored/controlled through Blynk.
+  DFRobot "Digital" peristaltic pump (DFR0523), monitored/controlled through Blynk.
+
+  The DFR0523 has its own onboard motor driver and is controlled directly by a
+  hobby-servo-style signal from an ESP32 pin - no relay or MOSFET driver board
+  is used. The pump still needs its own separate 5-6V power supply (a phone
+  charger's USB output alone isn't enough current) - only the signal wire and
+  a shared ground connect to the ESP32.
 
   Experimental container: sensor reading drives the pump automatically.
   Control container: sensor (if wired) is logging-only and must never reach
@@ -23,6 +29,9 @@
 
 #include <WiFi.h>
 #include <BlynkSimpleEsp32.h>
+#include <ESP32Servo.h>   // generates the servo-style PPM signal the pump expects
+
+Servo pumpServo;
 
 // ---- State ----
 bool autoWateringEnabled = true;
@@ -81,9 +90,7 @@ float rawToPercent(int raw) {
 
 void setPump(bool on) {
   pumpIsOn = on;
-  bool activeLevel = RELAY_ACTIVE_LOW ? LOW : HIGH;
-  bool idleLevel = RELAY_ACTIVE_LOW ? HIGH : LOW;
-  digitalWrite(PIN_PUMP_RELAY, on ? activeLevel : idleLevel);
+  pumpServo.writeMicroseconds(on ? PUMP_RUN_US : PUMP_STOP_US);
   Blynk.virtualWrite(V_PUMP_STATE, on ? 1 : 0);
 }
 
@@ -261,7 +268,7 @@ void testForcedReading(int fakeRawReading) {
 void setup() {
   Serial.begin(115200);
 
-  pinMode(PIN_PUMP_RELAY, OUTPUT);
+  pumpServo.attach(PIN_PUMP_SIGNAL);
   setPump(false);
   // ADC1 pins (32-39) need no pinMode call for analogRead() on ESP32.
 

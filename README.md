@@ -16,7 +16,10 @@ and water efficiency (root fresh mass in g ÷ total water used in L).
 ## Hardware
 
 - ESP32 FireBeetle
-- DFRobot peristaltic pump, DFR0523 (12V), switched via a relay module
+- DFRobot "Gravity: Digital Peristaltic Pump," DFR0523 (5-6V) - controlled directly
+  by a servo-style signal from the ESP32, no relay/MOSFET needed. Needs its own
+  separate 5-6V power supply (a phone charger + spare USB cable works) since a
+  computer's USB port can't supply enough current for it.
 - Primary soil moisture sensor: DFRobot IP65 capacitive SEN0308 (backup: SEN0193)
 - 2x Sterilite 20-Quart Clear Storage Bins as containers
 - Miracle-Gro Organic Outdoor Potting Mix, ~15cm depth
@@ -30,7 +33,8 @@ and water efficiency (root fresh mass in g ÷ total water used in L).
    Boards Manager). Select an ESP32 Dev Module-compatible board for the
    FireBeetle ESP32.
 2. Install libraries via Library Manager: **Blynk** (the current Blynk IoT
-   library, which provides `BlynkSimpleEsp32.h` and `BlynkTimer.h`).
+   library, which provides `BlynkSimpleEsp32.h`) and **ESP32Servo** (by
+   Kevin Harrington - generates the servo-style signal the pump needs).
 3. In `firmware/plant_watering_system/`, copy `secrets.h.example` to
    `secrets.h` and fill in your WiFi credentials and Blynk template
    ID/name/auth token (from Blynk.Console).
@@ -69,9 +73,9 @@ V4, a switch for V5).
 
 **Needs Monday's hardware (see `CALIBRATION.md`):**
 - Real `MOISTURE_RAW_DRY` / `MOISTURE_RAW_WET` / `PUMP_ML_PER_SEC` values
-- Confirming `RELAY_ACTIVE_LOW` against the actual relay module
+- Confirming `PUMP_RUN_US` actually dispenses (not the mirrored/backward direction)
 - Confirming pin assignments against the physical FireBeetle board and breadboard layout
-- Real end-to-end test (sensor -> ESP32 -> relay -> pump -> water)
+- Real end-to-end test (sensor -> ESP32 -> pump -> water)
 
 ## Open decisions (carried over from the project brief, not yet finalized)
 

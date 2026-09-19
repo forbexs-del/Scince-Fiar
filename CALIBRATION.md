@@ -29,16 +29,19 @@ logic can be trusted. Do both before soil goes in the containers.
 
 ## 2. Pump calibration (`PUMP_ML_PER_SEC`)
 
-1. Wire the pump to the relay and the relay to the ESP32 per the wiring in
-   `README.md`, with the pump's output tube running into a graduated
-   cylinder (not into soil yet).
+1. Wire the pump's signal wire to the ESP32 pin, and its power wires to your
+   separate 5-6V supply (not the ESP32/USB) - see `README.md`. Point the
+   pump's output tube into a graduated cylinder (not into soil yet).
 2. Run the pump for a fixed, known duration - 10 seconds is a good starting
    point. Easiest way: temporarily call `setPump(true)` in `setup()`,
    `delay(10000)`, then `setPump(false)`, and re-flash. (Revert this
    afterward - it's a one-off calibration hack, not something to leave in.)
-3. Measure the mL collected in the graduated cylinder.
-4. Repeat 3 times total and average: `mL/sec = average_mL / 10`.
-5. Put that value into `PUMP_ML_PER_SEC` in `config.h`.
+3. **If nothing comes out (or it sucks air/runs the wrong way):** the pump's
+   direction is flipped. Change `PUMP_RUN_US` in `config.h` to the mirrored
+   value on the other side of 1500 (e.g. 1900 -> 1100) and try again.
+4. Measure the mL collected in the graduated cylinder.
+5. Repeat 3 times total and average: `mL/sec = average_mL / 10`.
+6. Put that value into `PUMP_ML_PER_SEC` in `config.h`.
 
 ## 3. After both are done
 
@@ -46,12 +49,9 @@ logic can be trusted. Do both before soil goes in the containers.
   (stop watering) if the defaults (35% / 55%) don't match what you want to
   test - these are design choices, not something you measure. Keep
   `MOISTURE_TARGET_PCT` comfortably above `MOISTURE_THRESHOLD_PCT`.
-- Double-check `RELAY_ACTIVE_LOW` in `config.h`: if the pump runs when it
-  shouldn't (or vice versa) the first time you flip `setPump()`, this is
-  the constant to flip.
 - Confirm pin assignments in `config.h` against the actual FireBeetle ESP32
   board layout and your breadboard wiring - `PIN_SENSOR_EXPERIMENTAL` (32),
-  `PIN_SENSOR_CONTROL` (33), and `PIN_PUMP_RELAY` (25) were chosen as safe
+  `PIN_SENSOR_CONTROL` (33), and `PIN_PUMP_SIGNAL` (25) were chosen as safe
   ADC1/digital pins but weren't checked against physical hardware yet.
 - Watch a real pulse cycle end to end: dry soil in the experimental
   container should trigger a 40 mL pulse, pause for `SOAK_SETTLE_MS`, re-check
