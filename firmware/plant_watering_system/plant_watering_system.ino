@@ -23,13 +23,15 @@
 
 #include <WiFi.h>
 #include <BlynkSimpleEsp32.h>
-#include <BlynkTimer.h>
-
-BlynkTimer timer;
 
 // ---- State ----
 bool autoWateringEnabled = true;
 bool pumpIsOn = false;
+
+// Plain millis()-based scheduling instead of BlynkTimer (removes a fragile
+// library dependency - see pollSensorsAndMaybeWater()/logData() calls in loop()).
+unsigned long lastSensorPollMs = 0;
+unsigned long lastLogMs = 0;
 
 enum WateringState { WATERING_IDLE, WATERING_PULSING, WATERING_SOAKING };
 WateringState wateringState = WATERING_IDLE;
@@ -270,14 +272,21 @@ void setup() {
 
   Blynk.begin(BLYNK_AUTH_TOKEN, WIFI_SSID, WIFI_PASS);
 
-  timer.setInterval(SENSOR_POLL_INTERVAL_MS, pollSensorsAndMaybeWater);
-  timer.setInterval(LOG_INTERVAL_MS, logData);
-
   Serial.println("Setup complete.");
 }
 
 void loop() {
   Blynk.run();
-  timer.run();
+
+  unsigned long now = millis();
+  if (now - lastSensorPollMs >= SENSOR_POLL_INTERVAL_MS) {
+    lastSensorPollMs = now;
+    pollSensorsAndMaybeWater();
+  }
+  if (now - lastLogMs >= LOG_INTERVAL_MS) {
+    lastLogMs = now;
+    logData();
+  }
+
   updateWateringStateMachine(); // must run every loop iteration, not just on a timer interval
 }
