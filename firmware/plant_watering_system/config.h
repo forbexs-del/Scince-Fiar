@@ -41,7 +41,7 @@
 #define ML_PER_PLANT               30
 #define PULSE_ML                   40    // mL delivered per pulse
 #define MAX_PULSES_PER_EVENT        6    // ceiling: 6 x 40 mL = 240 mL max per event (same total budget as the old single-dose design)
-#define SOAK_SETTLE_MS   (10UL * 60UL * 1000UL)   // wait 10 min after a pulse before re-checking moisture - tune Monday, capacitive sensors lag true soil moisture
+#define SOAK_SETTLE_MS   (3UL * 60UL * 1000UL)   // wait 3 min after a pulse before re-checking moisture - tune Monday, capacitive sensors lag true soil moisture
 
 // ---------------------------------------------------------------------------
 // Safety guards

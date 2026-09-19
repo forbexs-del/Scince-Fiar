@@ -83,6 +83,6 @@ V4, a switch for V5).
   `PIN_SENSOR_CONTROL` in `pollSensorsAndMaybeWater()` - nothing else changes.
 - **Soaker line inlet connection**: documentation-only, doesn't affect firmware.
 - **Pulse size / target moisture / soak time**: `PULSE_ML` (40), `MOISTURE_TARGET_PCT`
-  (55%), and `SOAK_SETTLE_MS` (10 min) in `config.h` are starting points, not
+  (55%), and `SOAK_SETTLE_MS` (3 min) in `config.h` are starting points, not
   measured values - tune them once you see how fast the soil actually
   absorbs a pulse and how the sensor reading responds.
