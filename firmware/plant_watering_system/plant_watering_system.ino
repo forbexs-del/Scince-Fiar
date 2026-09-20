@@ -171,7 +171,9 @@ void pollSensorsAndMaybeWater() {
   float pctExperimental = rawToPercent(rawExperimental);
   Blynk.virtualWrite(V_MOISTURE_EXPERIMENTAL, pctExperimental);
 
-  Serial.print("Moisture % - experimental: ");
+  Serial.print("Moisture raw: ");
+  Serial.print(rawExperimental);
+  Serial.print("  -> % (using placeholder calibration, ignore until Day-0 calibration is done): ");
   Serial.println(pctExperimental);
 
   // Gate on wateringState (not pumpIsOn): the pump is off during the soak
