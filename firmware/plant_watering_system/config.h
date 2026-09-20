@@ -3,12 +3,12 @@
 // ---------------------------------------------------------------------------
 // Pin assignments (ESP32 FireBeetle)
 // ---------------------------------------------------------------------------
-// Sensor pins are ADC1 (GPIO32-39) on purpose: ADC2 pins share hardware with
-// WiFi and give garbage readings once WiFi is connected. Cross-check these
-// against the FireBeetle ESP32 silkscreen when wiring the real board (this
-// was an open item in the brief - not physically confirmed yet).
-#define PIN_SENSOR_EXPERIMENTAL   32   // capacitive sensor, experimental container - drives the pump
-#define PIN_PUMP_SIGNAL           25   // servo-style PPM signal wire from the pump's 3-pin Gravity connector
+// PIN_SENSOR_EXPERIMENTAL is GPIO36 (silkscreen label "A0") - confirmed
+// against the physical FireBeetle board, which breaks out A0/IO36, A1/IO39,
+// A2/IO34, A3/IO35 as its analog pins (no IO32/IO33 header on this board).
+// All of these are ADC1 pins, safe to read with WiFi active.
+#define PIN_SENSOR_EXPERIMENTAL   36   // capacitive sensor signal wire ("A" wire) - drives the pump
+#define PIN_PUMP_SIGNAL           25   // servo-style PPM signal wire from the pump's 3-pin Gravity connector - silkscreen label "IO25/D2"
 
 // The DFR0523 "Digital Peristaltic Pump" has its own onboard driver - it's
 // controlled by a hobby-servo-style signal, not a simple on/off switch, so no
