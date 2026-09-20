@@ -18,12 +18,7 @@ logic can be trusted. Do both before soil goes in the containers.
    Record the raw value. Repeat 2-3 times.
 4. Average each set. Put the dry average into `MOISTURE_RAW_DRY` and the wet
    average into `MOISTURE_RAW_WET` in `config.h`.
-5. Do this for both the experimental sensor and the control (logging-only)
-   sensor if the second sensor is being wired in - if their raw ranges
-   differ noticeably, you'll want separate calibration constants per sensor
-   (flag this if it happens; the current code assumes both sensors share one
-   calibration curve).
-6. Sanity check: with the placeholders replaced, uncomment the
+5. Sanity check: with the placeholders replaced, uncomment the
    `testForcedReading(...)` calls in `setup()` and confirm dry -> "no water"
    and wet -> "YES water" print as expected before moving on.
 
@@ -50,9 +45,9 @@ logic can be trusted. Do both before soil goes in the containers.
   test - these are design choices, not something you measure. Keep
   `MOISTURE_TARGET_PCT` comfortably above `MOISTURE_THRESHOLD_PCT`.
 - Confirm pin assignments in `config.h` against the actual FireBeetle ESP32
-  board layout and your breadboard wiring - `PIN_SENSOR_EXPERIMENTAL` (32),
-  `PIN_SENSOR_CONTROL` (33), and `PIN_PUMP_SIGNAL` (25) were chosen as safe
-  ADC1/digital pins but weren't checked against physical hardware yet.
+  board layout and your breadboard wiring - `PIN_SENSOR_EXPERIMENTAL` (32)
+  and `PIN_PUMP_SIGNAL` (25) were chosen as safe ADC1/digital pins but
+  weren't checked against physical hardware yet.
 - Watch a real pulse cycle end to end: dry soil in the experimental
   container should trigger a 40 mL pulse, pause for `SOAK_SETTLE_MS`, re-check
   moisture, and either pulse again or stop. Watch the Serial log for a few

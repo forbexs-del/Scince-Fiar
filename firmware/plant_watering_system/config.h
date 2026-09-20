@@ -8,7 +8,6 @@
 // against the FireBeetle ESP32 silkscreen when wiring the real board (this
 // was an open item in the brief - not physically confirmed yet).
 #define PIN_SENSOR_EXPERIMENTAL   32   // capacitive sensor, experimental container - drives the pump
-#define PIN_SENSOR_CONTROL        33   // capacitive sensor, control container - LOGGING ONLY, never wired into pump logic
 #define PIN_PUMP_SIGNAL           25   // servo-style PPM signal wire from the pump's 3-pin Gravity connector
 
 // The DFR0523 "Digital Peristaltic Pump" has its own onboard driver - it's

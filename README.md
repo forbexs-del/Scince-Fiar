@@ -48,11 +48,13 @@ firmware writes/reads:
 | Pin | Type   | Purpose                                      |
 |-----|--------|-----------------------------------------------|
 | V0  | Double | Experimental container moisture (%)           |
-| V1  | Double | Control container moisture (%) - logging only |
 | V2  | Integer| Pump state (0/1)                              |
 | V3  | Double | Total water delivered (mL, running total)     |
 | V4  | Integer| Manual override button - forces one watering  |
 | V5  | Integer| Auto-watering enable/disable switch           |
+
+(V1 is intentionally skipped - the control container's sensor was dropped
+from the firmware; that container is watered manually and not monitored.)
 
 Add matching widgets on the dashboard (gauges/labels for V0-V3, a button for
 V4, a switch for V5).
@@ -82,9 +84,6 @@ V4, a switch for V5).
 - **Data logging destination**: currently Serial-only (copy by hand into the
   measurement spreadsheet). Blynk cloud history or an SD card module are the
   alternatives if manual copying becomes a burden over 30 days.
-- **Control-container sensor**: firmware assumes it IS wired in (pin 33,
-  logging only). If you decide not to add a second sensor, just stop reading
-  `PIN_SENSOR_CONTROL` in `pollSensorsAndMaybeWater()` - nothing else changes.
 - **Soaker line inlet connection**: documentation-only, doesn't affect firmware.
 - **Pulse size / target moisture / soak time**: `PULSE_ML` (40), `MOISTURE_TARGET_PCT`
   (55%), and `SOAK_SETTLE_MS` (3 min) in `config.h` are starting points, not

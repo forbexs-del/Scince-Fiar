@@ -10,8 +10,8 @@
   a shared ground connect to the ESP32.
 
   Experimental container: sensor reading drives the pump automatically.
-  Control container: sensor (if wired) is logging-only and must never reach
-  the pump-trigger logic - watering for that container stays manual, by hand.
+  Control container is watered manually, by hand, and is not monitored by
+  this firmware at all - no second sensor is wired in.
 
   Watering is delivered as small pulses (PULSE_ML each), not one big dump:
   pulse, pause to let it soak in, re-check moisture, repeat until the target
@@ -54,7 +54,6 @@ float totalWaterDeliveredMl = 0;
 
 // ---- Virtual pins (Blynk datastreams - create these in the Blynk template) ----
 #define V_MOISTURE_EXPERIMENTAL   V0   // %, read-only widget
-#define V_MOISTURE_CONTROL        V1   // %, read-only widget, logging only
 #define V_PUMP_STATE              V2   // 0/1, read-only widget
 #define V_TOTAL_WATER_ML          V3   // running total, read-only widget
 #define V_MANUAL_OVERRIDE         V4   // button, forces one watering event
@@ -172,17 +171,9 @@ void pollSensorsAndMaybeWater() {
   float pctExperimental = rawToPercent(rawExperimental);
   Blynk.virtualWrite(V_MOISTURE_EXPERIMENTAL, pctExperimental);
 
-  int rawControl = averagedRawRead(PIN_SENSOR_CONTROL);
-  float pctControl = rawToPercent(rawControl);
-  Blynk.virtualWrite(V_MOISTURE_CONTROL, pctControl);
-
   Serial.print("Moisture % - experimental: ");
-  Serial.print(pctExperimental);
-  Serial.print("  control (log only): ");
-  Serial.println(pctControl);
+  Serial.println(pctExperimental);
 
-  // Control container's sensor is logging only - it never appears in this
-  // decision. Do not add it here.
   // Gate on wateringState (not pumpIsOn): the pump is off during the soak
   // step too, but the event is still in progress and must not be restarted.
   if (autoWateringEnabled && wateringState == WATERING_IDLE && minTimeBetweenWateringsElapsed()) {
