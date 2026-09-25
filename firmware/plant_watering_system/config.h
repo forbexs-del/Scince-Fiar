@@ -21,12 +21,11 @@
 #define PUMP_RUN_US    2400   // full speed - at 1900 the motor hummed but couldn't turn the rollers (bench test)
 
 // ---------------------------------------------------------------------------
-// Calibration placeholders - UNKNOWN until Monday's Day-0 calibration.
-// See ../../CALIBRATION.md for the exact procedure. Do not trust these
-// numbers for a real watering decision until they're replaced.
+// Calibration - measured. Redo all three readings (dry, wet, ideal soil)
+// whenever the sensor is swapped; see ../../CALIBRATION.md.
 // ---------------------------------------------------------------------------
-#define MOISTURE_RAW_DRY        3000   // PLACEHOLDER: analogRead() in bone-dry soil
-#define MOISTURE_RAW_WET        1200   // PLACEHOLDER: analogRead() in fully saturated soil
+#define MOISTURE_RAW_DRY        3170   // analogRead() with the sensor dry, in open air
+#define MOISTURE_RAW_WET        1665   // analogRead() with the blade in water up to its line
 #define MOISTURE_THRESHOLD_PCT    45   // start watering when moisture % drops below this (0% = dry, 100% = saturated)
 #define MOISTURE_TARGET_PCT       58   // stop pulsing once moisture % reaches this - measured "ideal soil" reading; must be > MOISTURE_THRESHOLD_PCT so it doesn't immediately re-trigger
 
@@ -44,7 +43,7 @@
 #define ML_PER_PLANT               30
 #define PULSE_ML                   40    // mL delivered per pulse
 #define MAX_PULSES_PER_EVENT        6    // ceiling: 6 x 40 mL = 240 mL max per event (same total budget as the old single-dose design)
-#define SOAK_SETTLE_MS   (3UL * 60UL * 1000UL)   // wait 3 min after a pulse before re-checking moisture - tune Monday, capacitive sensors lag true soil moisture
+#define SOAK_SETTLE_MS   (3UL * 60UL * 1000UL)   // wait 3 min after a pulse before re-checking moisture - capacitive sensors lag true soil moisture
 
 // ---------------------------------------------------------------------------
 // Safety guards
@@ -55,5 +54,5 @@
 // ---------------------------------------------------------------------------
 // Timing
 // ---------------------------------------------------------------------------
-#define SENSOR_POLL_INTERVAL_MS   (60UL * 1000UL)          // check moisture every 1 min
+#define SENSOR_POLL_INTERVAL_MS   (5UL * 1000UL)           // check moisture every 5 s
 #define LOG_INTERVAL_MS           (15UL * 60UL * 1000UL)   // log a data line every 15 min
