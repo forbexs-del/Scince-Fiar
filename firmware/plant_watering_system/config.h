@@ -18,7 +18,7 @@
 // run) at this value, try the mirrored value on the other side of 1500 (e.g.
 // 1900 <-> 1100) rather than assuming something is broken.
 #define PUMP_STOP_US   1500
-#define PUMP_RUN_US    1900
+#define PUMP_RUN_US    2400   // full speed - at 1900 the motor hummed but couldn't turn the rollers (bench test)
 
 // ---------------------------------------------------------------------------
 // Calibration placeholders - UNKNOWN until Monday's Day-0 calibration.
@@ -30,7 +30,7 @@
 #define MOISTURE_THRESHOLD_PCT    35   // start watering when moisture % drops below this (0% = dry, 100% = saturated)
 #define MOISTURE_TARGET_PCT       55   // stop pulsing once moisture % reaches this - must be > MOISTURE_THRESHOLD_PCT, gives headroom so it doesn't immediately re-trigger
 
-#define PUMP_ML_PER_SEC          2.5f  // PLACEHOLDER: from graduated-cylinder calibration, averaged over 3 runs
+#define PUMP_ML_PER_SEC          0.5f  // measured: 8 mL in 16 s at PUMP_RUN_US 2400, jug on the floor (re-measure if lift height changes)
 
 // ---------------------------------------------------------------------------
 // Dosing - incremental "pulse and check" watering instead of one big dump.
