@@ -27,8 +27,8 @@
 // ---------------------------------------------------------------------------
 #define MOISTURE_RAW_DRY        3000   // PLACEHOLDER: analogRead() in bone-dry soil
 #define MOISTURE_RAW_WET        1200   // PLACEHOLDER: analogRead() in fully saturated soil
-#define MOISTURE_THRESHOLD_PCT    35   // start watering when moisture % drops below this (0% = dry, 100% = saturated)
-#define MOISTURE_TARGET_PCT       55   // stop pulsing once moisture % reaches this - must be > MOISTURE_THRESHOLD_PCT, gives headroom so it doesn't immediately re-trigger
+#define MOISTURE_THRESHOLD_PCT    45   // start watering when moisture % drops below this (0% = dry, 100% = saturated)
+#define MOISTURE_TARGET_PCT       58   // stop pulsing once moisture % reaches this - measured "ideal soil" reading; must be > MOISTURE_THRESHOLD_PCT so it doesn't immediately re-trigger
 
 #define PUMP_ML_PER_SEC          0.5f  // measured: 8 mL in 16 s at PUMP_RUN_US 2400, jug on the floor (re-measure if lift height changes)
 
