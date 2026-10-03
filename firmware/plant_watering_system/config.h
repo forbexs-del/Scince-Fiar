@@ -27,8 +27,8 @@
 // Values below are for the SEN0308 (IP65) sensor.
 #define MOISTURE_RAW_DRY        2813   // analogRead() with the sensor dry, in open air
 #define MOISTURE_RAW_WET           0   // analogRead() with the probe in water up to its line - bottoms out the ESP32 ADC
-#define MOISTURE_THRESHOLD_PCT    34   // start watering when moisture % drops below this (0% = dry, 100% = saturated)
-#define MOISTURE_TARGET_PCT       44   // stop pulsing once moisture % reaches this - measured "ideal soil" reading (raw ~1580); must be > MOISTURE_THRESHOLD_PCT so it doesn't immediately re-trigger
+#define MOISTURE_THRESHOLD_PCT    32   // start watering when moisture % drops below this (0% = dry, 100% = saturated)
+#define MOISTURE_TARGET_PCT       42   // stop pulsing once moisture % reaches this - measured "ideal soil" reading in the trial container; must be > MOISTURE_THRESHOLD_PCT so it doesn't immediately re-trigger
 
 #define PUMP_ML_PER_SEC          0.5f  // measured: 8 mL in 16 s at PUMP_RUN_US 2400, jug on the floor (re-measure if lift height changes)
 
