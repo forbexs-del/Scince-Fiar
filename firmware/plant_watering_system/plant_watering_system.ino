@@ -18,20 +18,21 @@
   moisture level is reached or a pulse-count ceiling is hit. This avoids
   overflowing/pooling the soil from dropping the whole dose at once.
 
-  Two calibration constants in config.h are placeholders until Monday's
-  Day-0 calibration (see ../../CALIBRATION.md). Everything else here can be
-  written, compiled, and logic-tested with no hardware attached (see
+  Calibration constants live in config.h (see ../../CALIBRATION.md). The
+  watering logic can be checked with no hardware attached (see
   testForcedReading() below).
 */
 
 #include "secrets.h"      // WiFi + Blynk credentials - copy from secrets.h.example, do NOT commit
-#include "config.h"       // pins, calibration placeholders, dosing/safety constants
+#include "config.h"       // pins, calibration, dosing/safety constants
 
 #include <WiFi.h>
 #include <BlynkSimpleEsp32.h>
 #include <ESP32Servo.h>   // generates the servo-style PPM signal the pump expects
+#include <Preferences.h>  // flash storage so the water total survives power loss
 
 Servo pumpServo;
+Preferences prefs;
 
 // ---- State ----
 bool autoWateringEnabled = true;
@@ -127,6 +128,7 @@ void updateWateringStateMachine() {
   if (wateringState == WATERING_PULSING && millis() >= wateringStateDeadlineMs) {
     setPump(false);
     totalWaterDeliveredMl += PULSE_ML;
+    prefs.putFloat("totalMl", totalWaterDeliveredMl);
     pulsesThisEvent++;
     Blynk.virtualWrite(V_TOTAL_WATER_ML, totalWaterDeliveredMl);
     Serial.print("Pulse finished. Total water delivered (mL): ");
@@ -173,7 +175,7 @@ void pollSensorsAndMaybeWater() {
 
   Serial.print("Moisture raw: ");
   Serial.print(rawExperimental);
-  Serial.print("  -> % (using placeholder calibration, ignore until Day-0 calibration is done): ");
+  Serial.print("  -> %: ");
   Serial.println(pctExperimental);
 
   // Gate on wateringState (not pumpIsOn): the pump is off during the soak
@@ -270,13 +272,24 @@ void setup() {
   // testForcedReading(MOISTURE_RAW_WET);                                  // -> should print "YES"
   // testForcedReading((MOISTURE_RAW_DRY + MOISTURE_RAW_WET) / 2);         // -> depends on MOISTURE_THRESHOLD_PCT
 
-  Blynk.begin(BLYNK_AUTH_TOKEN, WIFI_SSID, WIFI_PASS);
+  prefs.begin("watering", false);
+  totalWaterDeliveredMl = prefs.getFloat("totalMl", 0);
+  Serial.print("Total water delivered so far (mL): ");
+  Serial.println(totalWaterDeliveredMl);
+
+  // Not Blynk.begin(): that blocks until WiFi connects, so a WiFi outage at
+  // boot would stop all watering. The ESP32 reconnects WiFi on its own and
+  // loop() only services Blynk while WiFi is up.
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Blynk.config(BLYNK_AUTH_TOKEN);
 
   Serial.println("Setup complete.");
 }
 
 void loop() {
-  Blynk.run();
+  if (WiFi.status() == WL_CONNECTED) {
+    Blynk.run();
+  }
 
   unsigned long now = millis();
   if (now - lastSensorPollMs >= SENSOR_POLL_INTERVAL_MS) {
