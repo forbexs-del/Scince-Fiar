@@ -81,9 +81,13 @@ V4, a switch for V5).
 
 ## Open decisions (carried over from the project brief, not yet finalized)
 
-- **Data logging destination**: currently Serial-only (copy by hand into the
-  measurement spreadsheet). Blynk cloud history or an SD card module are the
-  alternatives if manual copying becomes a burden over 30 days.
+- **Data logging**: every 15 min the ESP32 appends a CSV line (time, moisture %,
+  total water, watering state) to a file in its own flash, so data survives
+  power loss and doesn't need WiFi or Blynk. To read it, plug the ESP32 into a
+  laptop, open the Serial Monitor at 115200, type `d` and press Enter, then
+  copy the lines between BEGIN LOG / END LOG into a spreadsheet. Blynk only
+  gets a moisture update every 10 min to stay under its free monthly message
+  limit.
 - **Soaker line inlet connection**: documentation-only, doesn't affect firmware.
 - **Pulse size / target moisture / soak time**: `PULSE_ML` (40), `MOISTURE_TARGET_PCT`
   (55%), and `SOAK_SETTLE_MS` (3 min) in `config.h` are starting points, not

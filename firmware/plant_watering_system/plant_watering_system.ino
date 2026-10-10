@@ -30,6 +30,10 @@
 #include <BlynkSimpleEsp32.h>
 #include <ESP32Servo.h>   // generates the servo-style PPM signal the pump expects
 #include <Preferences.h>  // flash storage so the water total survives power loss
+#include <LittleFS.h>     // flash file for the data log
+#include <time.h>
+
+#define LOG_FILE "/log.csv"
 
 Servo pumpServo;
 Preferences prefs;
@@ -51,7 +55,10 @@ unsigned long wateringStateDeadlineMs = 0; // when the current pulse/soak step e
 // Wraps around on purpose so the very first watering isn't blocked by the
 // min-time-between-waterings guard (millis()-lastWateringEndMs is huge at boot).
 unsigned long lastWateringEndMs = (unsigned long)0 - MIN_MS_BETWEEN_WATERINGS;
+// Same wrap trick: send the first moisture reading to Blynk right away.
+unsigned long lastBlynkSendMs = (unsigned long)0 - BLYNK_SEND_INTERVAL_MS;
 float totalWaterDeliveredMl = 0;
+float lastMoisturePct = 0;
 
 // ---- Virtual pins (Blynk datastreams - create these in the Blynk template) ----
 #define V_MOISTURE_EXPERIMENTAL   V0   // %, read-only widget
@@ -140,6 +147,7 @@ void updateWateringStateMachine() {
   } else if (wateringState == WATERING_SOAKING && millis() >= wateringStateDeadlineMs) {
     int raw = averagedRawRead(PIN_SENSOR_EXPERIMENTAL);
     float pct = rawToPercent(raw);
+    lastMoisturePct = pct;
     Blynk.virtualWrite(V_MOISTURE_EXPERIMENTAL, pct);
 
     Serial.print("Post-pulse moisture check: ");
@@ -171,7 +179,11 @@ bool minTimeBetweenWateringsElapsed() {
 void pollSensorsAndMaybeWater() {
   int rawExperimental = averagedRawRead(PIN_SENSOR_EXPERIMENTAL);
   float pctExperimental = rawToPercent(rawExperimental);
-  Blynk.virtualWrite(V_MOISTURE_EXPERIMENTAL, pctExperimental);
+  lastMoisturePct = pctExperimental;
+  if (millis() - lastBlynkSendMs >= BLYNK_SEND_INTERVAL_MS) {
+    lastBlynkSendMs = millis();
+    Blynk.virtualWrite(V_MOISTURE_EXPERIMENTAL, pctExperimental);
+  }
 
   Serial.print("Moisture raw: ");
   Serial.print(rawExperimental);
@@ -190,24 +202,47 @@ void pollSensorsAndMaybeWater() {
 // ---------------------------------------------------------------------------
 // Data logging
 // ---------------------------------------------------------------------------
-// Destination wasn't finalized in the brief (Blynk history vs SD card vs
-// manual serial capture - see README.md "Data logging"). Serial CSV is the
-// safe default that works with zero extra hardware; copy lines into the
-// measurement spreadsheet by hand, or swap this function for SD/Blynk-export
-// logic once that decision is made.
+// Each line is appended to a CSV file in the ESP32's flash, so the data
+// survives power loss and doesn't depend on WiFi or Blynk. Type "d" in the
+// Serial Monitor to print the whole file.
+#define LOG_HEADER "time,uptime_min,moisture_pct,total_water_ml,state,pulses_this_event"
+
+String timestamp() {
+  time_t now = time(nullptr);
+  if (now < 1700000000) return "unknown"; // clock not set yet (no internet time since boot)
+  struct tm t;
+  localtime_r(&now, &t);
+  char buf[20];
+  strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M", &t);
+  return String(buf);
+}
+
 void logData() {
-  Serial.print("LOG,");
-  Serial.print(millis());
-  Serial.print(",totalWaterMl=");
-  Serial.print(totalWaterDeliveredMl);
-  Serial.print(",state=");
-  switch (wateringState) {
-    case WATERING_IDLE:    Serial.print("IDLE");    break;
-    case WATERING_PULSING: Serial.print("PULSING"); break;
-    case WATERING_SOAKING: Serial.print("SOAKING"); break;
+  const char* state = "IDLE";
+  if (wateringState == WATERING_PULSING) state = "PULSING";
+  if (wateringState == WATERING_SOAKING) state = "SOAKING";
+
+  String line = timestamp() + "," + String(millis() / 60000UL) + "," +
+                String(lastMoisturePct, 1) + "," + String(totalWaterDeliveredMl, 0) + "," +
+                state + "," + String(pulsesThisEvent);
+
+  File f = LittleFS.open(LOG_FILE, FILE_APPEND);
+  if (f) {
+    f.println(line);
+    f.close();
   }
-  Serial.print(",pulsesThisEvent=");
-  Serial.println(pulsesThisEvent);
+  Serial.print("LOG,");
+  Serial.println(line);
+}
+
+void dumpLog() {
+  Serial.println("----- BEGIN LOG -----");
+  File f = LittleFS.open(LOG_FILE, FILE_READ);
+  if (f) {
+    while (f.available()) Serial.write(f.read());
+    f.close();
+  }
+  Serial.println("----- END LOG -----");
 }
 
 // ---------------------------------------------------------------------------
@@ -282,13 +317,28 @@ void setup() {
   // loop() only services Blynk while WiFi is up.
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   Blynk.config(BLYNK_AUTH_TOKEN);
+  configTzTime(TIMEZONE, "pool.ntp.org"); // sets the clock once WiFi is up
 
-  Serial.println("Setup complete.");
+  LittleFS.begin(true); // true = format on first use
+  if (!LittleFS.exists(LOG_FILE)) {
+    File f = LittleFS.open(LOG_FILE, FILE_WRITE);
+    if (f) {
+      f.println(LOG_HEADER);
+      f.close();
+    }
+  }
+
+  Serial.println("Setup complete. Type d + Enter to print the saved data log.");
 }
 
 void loop() {
   if (WiFi.status() == WL_CONNECTED) {
     Blynk.run();
+  }
+
+  if (Serial.available()) {
+    char c = Serial.read();
+    if (c == 'd' || c == 'D') dumpLog();
   }
 
   unsigned long now = millis();

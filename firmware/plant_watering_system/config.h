@@ -55,5 +55,9 @@
 // ---------------------------------------------------------------------------
 // Timing
 // ---------------------------------------------------------------------------
-#define SENSOR_POLL_INTERVAL_MS   (5UL * 1000UL)           // check moisture every 5 s
-#define LOG_INTERVAL_MS           (15UL * 60UL * 1000UL)   // log a data line every 15 min
+#define SENSOR_POLL_INTERVAL_MS   (60UL * 1000UL)          // check moisture every 1 min
+#define BLYNK_SEND_INTERVAL_MS    (10UL * 60UL * 1000UL)   // send moisture to Blynk every 10 min - keeps a month well under Blynk's free 100k message limit
+#define LOG_INTERVAL_MS           (15UL * 60UL * 1000UL)   // save a data line to the ESP32's flash every 15 min
+
+// Used to timestamp saved log lines (time comes from the internet when WiFi is up).
+#define TIMEZONE                  "EST5EDT,M3.2.0,M11.1.0" // US Eastern
